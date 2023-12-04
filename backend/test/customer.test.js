@@ -1,12 +1,16 @@
 import Customer from "../src/models/Customer";
+import Order from "../src/models/Order";
 import customerService from "../src/services/customer.service";
+jest.mock('../src/models/Order'); // ajuste o caminho conforme a sua estrutura
+
+
 
 jest.mock("../src/models/Customer", () => ({
   create: jest.fn(),
   find: jest.fn(),
   findById: jest.fn(),
   findOneAndUpdate: jest.fn(),
-  delete: jest.fn()
+  delete: jest.fn(),
 }));
 
 describe("createService", () => {
@@ -28,9 +32,7 @@ describe("createService", () => {
 
     Customer.create.mockResolvedValue(mockCreatedCustomer);
 
-
     const result = await customerService.createService(mockCustomer);
-
 
     expect(Customer.create).toHaveBeenCalledWith(mockCustomer);
     expect(result).toEqual(mockCreatedCustomer);
@@ -46,9 +48,9 @@ describe("createService", () => {
 
     Customer.create.mockRejectedValue(mockError);
 
-    await expect(customerService.createService(mockCustomer)).rejects.toThrowError(
-      mockError
-    );
+    await expect(
+      customerService.createService(mockCustomer)
+    ).rejects.toThrowError(mockError);
   });
 });
 
@@ -60,7 +62,11 @@ describe("findAllService", () => {
   it("Deve retornar todos os clientes do banco de dados", async () => {
     const mockCustomers = [
       { _id: "1", name: "Clara Oliveira", email: "ClaraOliveira@gmail.com" },
-      { _id: "2", name: "Rafael Rodrigues", email: "RafaelRodrigues@gmail.com" },
+      {
+        _id: "2",
+        name: "Rafael Rodrigues",
+        email: "RafaelRodrigues@gmail.com",
+      },
     ];
 
     Customer.find.mockResolvedValue(mockCustomers);
@@ -87,7 +93,9 @@ describe("findAllService", () => {
 
     Customer.find.mockRejectedValue(mockError);
 
-    await expect(customerService.findAllService()).rejects.toThrowError(mockError);
+    await expect(customerService.findAllService()).rejects.toThrowError(
+      mockError
+    );
   });
 });
 
@@ -226,7 +234,9 @@ describe("deleteService", () => {
       divida: 1000,
     };
 
-    Customer.findOneAndDelete = jest.fn().mockResolvedValue(mockDeletedCustomer);
+    Customer.findOneAndDelete = jest
+      .fn()
+      .mockResolvedValue(mockDeletedCustomer);
 
     const result = await customerService.deleteService(mockId);
 
@@ -247,3 +257,67 @@ describe("deleteService", () => {
   });
 });
 
+describe("viewCustomerStatementByPeriod", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+
+  it("Deve retornar uma lista vazia se o cliente não tiver pedidos no intervalo de datas", async () => {
+    const findSpy = jest.spyOn(Order, 'find').mockResolvedValue([]);
+    const result = await customerService.viewCustomerStatementByPeriod('cliente1', '2023-01-01', '2023-02-01');
+  
+    expect(findSpy).toHaveBeenCalledWith({
+      cliente: 'cliente1',
+      dataPedido: { $gte: '2023-01-01', $lt: '2023-02-01' }
+    });
+  
+    expect(result).toEqual([]);
+  
+    findSpy.mockRestore();
+  });
+  
+
+  it("Deve retornar pedidos do cliente no intervalo de datas", async () => {
+    const mockOrders = [
+      { _id: '1', cliente: 'cliente1', dataPedido: '2023-01-15' },
+      { _id: '2', cliente: 'cliente1', dataPedido: '2023-01-25' },
+      { _id: '3', cliente: 'cliente1', dataPedido: '2023-02-05' },
+    ];
+  
+    const findSpy = jest.spyOn(Order, 'find').mockResolvedValue(mockOrders);
+  
+    const startDate = '2023-01-01';
+    const endDate = '2023-02-01';
+    const identifier = 'cliente1';
+  
+    const result = await customerService.viewCustomerStatementByPeriod(identifier, startDate, endDate);
+  
+    expect(findSpy).toHaveBeenCalledWith({
+      cliente: identifier,
+      dataPedido: { $gte: startDate, $lt: endDate }
+    });
+  
+    expect(result).toEqual(mockOrders);
+  
+    findSpy.mockRestore();
+  });
+
+  it("Deve lançar um erro se as datas são inválidas", async () => {
+    const currentDate = new Date()
+    const futureDate = new Date(currentDate);
+    futureDate.setDate(currentDate.getDate() + 7)
+    const futureDateString = futureDate.toISOString().split('T')[0]
+    const currentDateString = currentDate.toISOString().split('T')[0]
+  
+    await expect(customerService.viewCustomerStatementByPeriod('cliente1', '2023-02-01', '2023-01-01'))
+      .rejects.toThrowError('Datas inválidas');
+  
+    await expect(customerService.viewCustomerStatementByPeriod('cliente1', '2023-02-01', futureDateString))
+      .rejects.toThrowError('Datas inválidas');
+
+    await expect(customerService.viewCustomerStatementByPeriod('cliente1', currentDateString, '2023-02-01'))
+      .rejects.toThrowError('Datas inválidas');
+  });
+  
+});

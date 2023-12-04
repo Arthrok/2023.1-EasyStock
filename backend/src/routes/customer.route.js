@@ -10,5 +10,6 @@ router.get("/", authMiddleware, customerController.findAllCustomers); // Lista t
 router.get("/:id", authMiddleware, validId, validCustomer, customerController.findCustomerById); // Busca um cliente pelo ID
 router.patch("/:id", authMiddleware, validId, validCustomer, customerController.updateCustomer); // Atualiza os campos de um cliente
 router.delete("/:id", authMiddleware, validId, validCustomer, customerController.deleteCustomer); // Deleta um cliente
+router.post("/:id/extrato", customerController.viewCustomerStatementByPeriod);
 
 export default router;

@@ -1,3 +1,4 @@
+import Order from "../models/Order.js";
 import customerService from "../services/customer.service.js";
 import { validateEmail } from "./auth.controller.js";
 
@@ -99,4 +100,14 @@ const deleteCustomer = async (req, res) => { // Deleta um cliente
     }
 }
 
-export default { createCustomer, findAllCustomers, findCustomerById, updateCustomer, deleteCustomer }
+const viewCustomerStatementByPeriod = async (req, res) => {
+    try {
+        const { identifier, startDate, endDate } = req.body
+        const result = await customerService.viewCustomerStatementByPeriod(identifier, startDate, endDate)
+        res.status(200).send(result)
+    } catch (error) {
+        res.status(500).send(error)
+    }
+}
+
+export default { createCustomer, findAllCustomers, findCustomerById, updateCustomer, deleteCustomer, viewCustomerStatementByPeriod }

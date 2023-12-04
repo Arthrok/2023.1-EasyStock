@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 const createService = (body) => Order.create(body);
 
-const findAllService = () => Order.find().populate('cliente', 'nome').sort({ 'dataPedido': -1 });
+const findAllService = async () => await Order.find().populate('cliente', 'nome').sort({ 'dataPedido': -1 });
 
 const findByIdService = (id) => 
 Order.findById(id)
